@@ -375,7 +375,7 @@ locale monoid_morphism = (* This is like homomorphism but lacks the commutes_wit
   map \<eta> M M'+  source: monoid M "(\<cdot>)" \<one> + target: monoid M' "(\<cdot>')" "\<one>'"
   for \<eta> and M and composition (infixl "\<cdot>" 70) and unit ("\<one>")
     and M' and composition' (infixl "\<cdot>''" 70) and unit' ("\<one>''") +
-  assumes commutes_with_composition: "\<lbrakk> x \<in> M; y \<in> M \<rbrakk> \<Longrightarrow> \<eta> (x \<cdot> y) = \<eta> x \<cdot>' \<eta> y"
+  assumes commutes_with_composition: "\<lbrakk> x \<in> M; y \<in> M \<rbrakk> \<Longrightarrow> \<eta> x \<cdot>' \<eta> y = \<eta> (x \<cdot> y)"
 begin
 
 text \<open>p 58, l 33; p 59, ll 1--2\<close>
@@ -394,29 +394,23 @@ locale monoid_homomorphism = monoid_morphism \<eta>  M "(\<cdot>)" \<one> M' "(\
   assumes commutes_with_unit: "\<eta> \<one> = \<one>'"
 
 text \<open>Jacobson notes that @{thm [source] monoid_homomorphism.commutes_with_unit} is not necessary for groups, but doesn't make use of that later.\<close>
-(*
-locale monoid_isomorphism =
-  bijective_map \<eta> M M' +  source: monoid M "(\<cdot>)" \<one> + target: monoid M' "(\<cdot>')" "\<one>'"
-  for \<eta> and M and composition (infixl "\<cdot>" 70) and unit ("\<one>")
-    and M' and composition' (infixl "\<cdot>''" 70) and unit' ("\<one>''") +
-  assumes commutes_with_composition: "\<lbrakk> x \<in> M; y \<in> M \<rbrakk> \<Longrightarrow> \<eta> x \<cdot>' \<eta> y = \<eta> (x \<cdot> y)"
-    and commutes_with_unit: "\<eta> \<one> = \<one>'"
-*)
 
-text \<open>Def 1.3\<close>
-text \<open>p 37, ll 7--11\<close>                              
-locale monoid_isomorphism = monoid_morphism + bijective_map \<eta> M M'
+locale monoid_isomorphism = bijective_map \<eta> M M' + monoid_morphism
 begin                                           
 theorem commutes_with_unit: "\<eta> \<one> = \<one>'"
 proof -
   {
     fix y assume "y \<in> M'"
     then obtain x where nxy:"\<eta> x = y" "x \<in> M" by (metis image_iff surjective)
-    then have "\<eta> x \<cdot>' \<eta> \<one> = \<eta> x" using commutes_with_composition[symmetric] by auto
+    then have "\<eta> x \<cdot>' \<eta> \<one> = \<eta> x" using commutes_with_composition by auto
     then have "y \<cdot>' \<eta> \<one> = y" using nxy by auto
   }
   then show "\<eta> \<one> = \<one>'" by fastforce
 qed 
+
+sublocale hom: monoid_homomorphism \<eta>  M "(\<cdot>)" \<one> M' "(\<cdot>')" "\<one>'"
+  by(unfold_locales, rule commutes_with_unit)
+  
 end
 
 text \<open>p 59, ll 29--30\<close>
@@ -444,9 +438,7 @@ context monoid_isomorphism begin
 text \<open>p 37, ll 30--33\<close>
 theorem inverse_monoid_isomorphism:
   "monoid_isomorphism (restrict (inv_into M \<eta>) M') M' (\<cdot>') \<one>' M (\<cdot>) \<one>"
-  using commutes_with_composition commutes_with_unit bijective 
-  apply(unfold_locales)
-  apply(auto)
+  using commutes_with_composition commutes_with_unit surjective 
   by unfold_locales auto
 
 end (* monoid_isomorphism *)
@@ -734,8 +726,6 @@ next
   fix x and y
   assume [simp]: "x \<in> G" "y \<in> G"
   show "compose G (?inv x) (?inv y) = (?inv (x \<cdot> y))" by (simp add: inverse_composition_commute del: translation_unit_eq)
-next
-  show "?inv \<one> = identity G" by (simp del: translation_unit_eq) simp
 qed
 
 text \<open>p 39, ll 10--11\<close>
@@ -1357,7 +1347,7 @@ theorem invertible_image_lemma:
   assumes "invertible a" "a \<in> M"
   shows "\<eta> a \<cdot>' \<eta> (inverse a) = \<one>'" and "\<eta> (inverse a) \<cdot>' \<eta> a = \<one>'"
   using assms commutes_with_composition commutes_with_unit source.inverse_equality
-  by auto (metis source.invertible_inverse_closed source.invertible_left_inverse)
+  by auto 
 
 text \<open>p 59, l 34; p 60, l 1\<close>
 theorem invertible_target_invertible [intro, simp]:
@@ -1379,7 +1369,7 @@ text \<open>Fundamental Theorem of Homomorphisms of Monoids\<close>
 
 text \<open>p 61, ll 5, 14--16\<close>
 sublocale monoid_homomorphism \<subseteq> image: submonoid "\<eta> ` M" M' "(\<cdot>')" "\<one>'"
-  by unfold_locales (auto simp: commutes_with_composition [symmetric] commutes_with_unit [symmetric])
+  by unfold_locales (auto simp: commutes_with_composition commutes_with_unit [symmetric])
 
 text \<open>p 61, l 4\<close>
 locale monoid_homomorphism_fundamental = monoid_homomorphism begin
@@ -1392,7 +1382,7 @@ text \<open>p 61, ll 6--7, 18--20\<close>
 sublocale monoid_congruence where E = "E(\<eta>)"
   using Class_eq
   by unfold_locales (rule Class_equivalence [THEN iffD1],
-    auto simp: left_closed right_closed commutes_with_composition Fiber_equality)
+    auto simp: left_closed right_closed commutes_with_composition[symmetric] Fiber_equality)
 
 text \<open>p 61, ll 7--9\<close>
 text \<open>
@@ -1457,13 +1447,13 @@ text \<open>p 62, ll 15--16\<close>
 sublocale kernel: normal_subgroup Ker G
 proof -
   interpret kernel: submonoid Ker G
-    unfolding Ker_def by unfold_locales (auto simp: commutes_with_composition commutes_with_unit)
+    unfolding Ker_def by unfold_locales (auto simp: commutes_with_composition[symmetric] commutes_with_unit)
   interpret kernel: subgroup Ker G
     by unfold_locales (force intro: source.invertible_right_inverse simp: Ker_image invertible_commutes_with_inverse)
   show "normal_subgroup Ker G (\<cdot>) \<one>"
     apply unfold_locales
     unfolding Ker_def
-    by (auto simp: commutes_with_composition invertible_image_lemma(2))
+    by (auto simp: commutes_with_composition[symmetric] invertible_image_lemma(2))
 qed
 
 text \<open>p 62, ll 17--20\<close>
