@@ -370,7 +370,6 @@ end (* transformation_group *)
 
 subsection \<open>Isomorphisms.  Cayley's Theorem\<close>
 
-
 locale monoid_morphism = (* This is like homomorphism but lacks the commutes_with_unit axiom *)
   map \<eta> M M'+  source: monoid M "(\<cdot>)" \<one> + target: monoid M' "(\<cdot>')" "\<one>'"
   for \<eta> and M and composition (infixl "\<cdot>" 70) and unit ("\<one>")
@@ -411,9 +410,9 @@ qed
 sublocale hom: monoid_homomorphism \<eta>  M "(\<cdot>)" \<one> M' "(\<cdot>')" "\<one>'"
   by(unfold_locales, rule commutes_with_unit)
   
-end
+end (* monoid_isomorphism *)
 
-text \<open>p 59, ll 29--30\<close>
+text \<open>p 59, ll 29--30\<close>                                
 locale monoid_epimorphism = monoid_homomorphism + surjective_map \<eta> M M'
 
 text \<open>p 59, l 30\<close>
