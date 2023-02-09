@@ -9,25 +9,80 @@ theory Topological_Space
 begin
 
 section \<open>Topological Spaces\<close>
-
+text \<open>p 25, def 1.1.1\<close>
 locale topological_space = fixes S :: "'a set" and is_open :: "'a set \<Rightarrow> bool"
-  assumes open_space [simp, intro]: "is_open S" and open_empty [simp, intro]: "is_open {}"
+  assumes open_space [simp, intro]: "is_open S"
     and open_imp_subset: "is_open U \<Longrightarrow> U \<subseteq> S"
     and open_inter [intro]: "\<lbrakk>is_open U; is_open V\<rbrakk> \<Longrightarrow> is_open (U \<inter> V)"
-    and open_union [intro]: "\<And>F::('a set) set. (\<And>x. x \<in> F \<Longrightarrow> is_open x) \<Longrightarrow> is_open (\<Union>x\<in>F. x)"
+    and open_union [intro]: "\<And>F::('a set) set. (\<And>x. x \<in> F \<Longrightarrow> is_open x) \<Longrightarrow> is_open (\<Union>F)"
 
 begin
 
+text \<open>p 25, def 1.1.1\<close>
+theorem open_empty [simp, intro]: "is_open {}"
+  using open_union[of "{}"] by auto
+
+lemma open_Un [continuous_intros, intro]: "is_open U \<Longrightarrow> is_open V \<Longrightarrow> is_open (U \<union> V)"
+  using open_union [of "{U, V}"] by auto
+
+lemma openI:
+  assumes "\<And>x. x \<in> U \<Longrightarrow> \<exists>T. is_open T \<and> x \<in> T \<and> T \<subseteq> U"
+  shows "is_open U"
+proof -
+  have "is_open (\<Union>{T. is_open T \<and> T \<subseteq> U})" by auto
+  moreover have "\<Union>{T. is_open T \<and> T \<subseteq> U} = U" by (auto dest!: assms)
+  ultimately show "is_open U" by simp
+qed
+
+text \<open>p 30, exercise 4\<close>
+lemma open_Inter [continuous_intros, intro]: "finite F \<Longrightarrow> \<forall>T\<in>F. is_open T \<Longrightarrow> is_open (S \<inter> \<Inter>F)"
+  apply(induction set: finite)
+  apply(auto)
+  apply(subst Set.Int_assoc[symmetric])
+  apply(subst Set.Int_commute[symmetric])
+  apply(subst Set.Int_assoc)
+  apply(rule open_inter)
+  by auto
+  
+text \<open>p 34, def 1.2.4\<close>
 definition is_closed :: "'a set \<Rightarrow> bool"
-  where "is_closed U \<equiv> U \<subseteq> S \<and> is_open (S - U)"
+  where "is_closed U \<equiv> U \<subseteq> S \<and> is_open (S \<setminus> U)"
+
+text \<open>p 34, def 1.2.5 i\<close>
+theorem closed_empty [simp, intro]: "is_closed {}"
+  by(unfold is_closed_def) (auto)
+
+text \<open>p 34, def 1.2.5 i\<close>
+theorem closed_space [simp, intro]: "is_closed S"
+  by(unfold is_closed_def) (auto)
+
+text \<open>p 34, def 1.2.5 iii\<close>
+lemma closed_Un [continuous_intros, intro]: "is_closed U \<Longrightarrow> is_closed V \<Longrightarrow> is_closed (U \<union> V)"
+  by(unfold is_closed_def) (simp add:Set.Diff_Un open_inter)
+
+lemma open_closed[simp]: "U \<subseteq> S \<Longrightarrow> is_closed (S \<setminus> U) \<longleftrightarrow> is_open U"
+  by(simp add: is_closed_def double_diff)
+  
+lemma closed_open: "U \<subseteq> S \<Longrightarrow> is_closed U \<longleftrightarrow> is_open (S \<setminus> U)"
+  by(simp add: is_closed_def double_diff)
+
+text \<open>p 36, def 1.2.6\<close>
+definition is_clopen :: "'a set \<Rightarrow> bool"
+  where "is_clopen U \<equiv> is_open U \<and> is_closed U"
+
+lemma open_Diff [continuous_intros, intro]: "is_open U \<Longrightarrow> is_closed V \<Longrightarrow> is_open (U \<setminus> V)"
+  apply(unfold is_closed_def)
+  apply(auto)
+  apply (simp add: closed_open Diff_eq open_Int)
+
+lemma closed_Diff [continuous_intros, intro]: "is_closed U \<Longrightarrow> is_open V \<Longrightarrow> is_closed (U \<setminus> V)"
+  by (simp add: open_closed Diff_eq closed_Int)
 
 definition neighborhoods:: "'a \<Rightarrow> ('a set) set"
   where "neighborhoods x \<equiv> {U. is_open U \<and> x \<in> U}"
 
 text \<open>Note that by a neighborhood we mean what some authors call an open neighborhood.\<close>
 
-lemma open_union' [intro]: "\<And>F::('a set) set. (\<And>x. x \<in> F \<Longrightarrow> is_open x) \<Longrightarrow> is_open (\<Union>F)"
-  using open_union by auto
 
 lemma open_preimage_identity [simp]: "is_open B \<Longrightarrow> identity S \<^sup>\<inverse> S B = B"
   by (metis inf.orderE open_imp_subset preimage_identity_self)
@@ -41,6 +96,27 @@ definition is_hausdorff:: "bool" where
 \<forall>x y. (x \<in> S \<and> y \<in> S \<and> x \<noteq> y) \<longrightarrow> (\<exists>U V. U \<in> neighborhoods x \<and> V \<in> neighborhoods y \<and> U \<inter> V = {})"
 
 end (* topological_space *)
+
+text \<open>p 26, def 1.1.6\<close>
+locale discrete_topology = topological_space +
+  assumes open_discrete: "\<And>U. U \<subseteq> S \<Longrightarrow> is_open U"
+
+text \<open>p 29, def 1.1.9\<close>
+theorem singl_open_discr : 
+  assumes tp:"topological_space S is_open"
+  and sng:"\<And> x. x \<in> S \<Longrightarrow> is_open {x}"
+  shows "discrete_topology S is_open"
+proof -
+  interpret S: topological_space S is_open by fact
+  from tp sng show ?thesis 
+    apply(unfold_locales)
+    apply(rule local.S.openI)
+    by(auto)
+qed
+
+text \<open>p 27, def 1.1.7\<close>
+locale indiscrete_topology = topological_space +
+  assumes open_discrete: "\<And>U. is_open U \<Longrightarrow> U = {} \<or> U = S"
 
 text \<open>T2 spaces are also known as Hausdorff spaces.\<close>
 
@@ -152,12 +228,12 @@ next
   obtain F' where F': "\<And>x. x \<in> F \<and> ind_is_open x \<Longrightarrow> is_open (F' x) \<and> x = S \<inter> (F' x)"
     using ind_is_open_def by metis
   have "is_open (\<Union> (F' ` F))"
-    by (metis (mono_tags, lifting) F F' imageE image_ident open_union)
+    by (metis (mono_tags, lifting) F F' imageE open_union)
   moreover
   have "(\<Union>x\<in>F. x) = S \<inter> \<Union> (F' ` F)"
     using F' \<open>\<And>x. x \<in> F \<Longrightarrow> ind_is_open x\<close> by fastforce
-  ultimately show "ind_is_open (\<Union>x\<in>F. x)"
-    by (metis ind_is_open_def inf_sup_ord(1) open_imp_subset)
+  ultimately show "ind_is_open (\<Union>F)"
+    by auto (metis ind_is_open_def inf_sup_ord(1) open_imp_subset)
 next
   show "\<And>U. ind_is_open U \<Longrightarrow> U \<subseteq> S"
     by (simp add: ind_is_open_def)

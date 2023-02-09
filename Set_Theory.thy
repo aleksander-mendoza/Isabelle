@@ -26,8 +26,17 @@ text \<open>
 
 section \<open>Concepts from Set Theory.  The Integers\<close>
 
-abbreviation complement_in_of:: "'a set \<Rightarrow> 'a set \<Rightarrow> 'a set" ("_\<setminus>_" [65,65]65)
+abbreviation complement_in_of:: "'a set \<Rightarrow> 'a set \<Rightarrow> 'a set" ("_\<setminus>_" [75,75]75)
   where "A \<setminus> B \<equiv> A-B"
+
+lemma Diff_Int_nAry:"(S \<setminus> \<Inter> F) = (\<Union>x\<in>F . S \<setminus> x)"
+  by auto
+
+lemma Diff_Un_nAry:"(S \<setminus> \<Union> F) = S \<inter> ( \<Inter>x\<in>F . S \<setminus> x)"
+  by auto
+
+lemma double_diff: "U \<subseteq> S \<Longrightarrow> S\<setminus>(S\<setminus>U) = U"
+  by auto
 
 subsection \<open>The Cartesian Product Set.  Maps\<close>
 
