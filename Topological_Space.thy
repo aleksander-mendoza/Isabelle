@@ -4,7 +4,7 @@ with some contributions from Wenda Li\<close>
 
 theory Topological_Space
   imports Complex_Main
-          "Set_Theory"
+          Set_Theory
 
 begin
 
@@ -56,6 +56,10 @@ text \<open>p 34, def 1.2.5 i\<close>
 theorem closed_space [simp, intro]: "is_closed S"
   by(unfold is_closed_def) (auto)
 
+text \<open>p 34, def 1.2.5 ii\<close>
+lemma closed_Inter [continuous_intros, intro]: "\<And>F::('a set) set. (\<And>x. x \<in> F \<Longrightarrow> is_closed x) \<Longrightarrow> is_closed (S \<inter> \<Inter>F)"
+  unfolding is_closed_def by(auto simp add: Diff_dist[symmetric] Diff_Int_nAry simp del: Complete_Lattices.UN_simps)
+
 text \<open>p 34, def 1.2.5 iii\<close>
 lemma closed_Un [continuous_intros, intro]: "is_closed U \<Longrightarrow> is_closed V \<Longrightarrow> is_closed (U \<union> V)"
   by(unfold is_closed_def) (simp add:Set.Diff_Un open_inter)
@@ -66,17 +70,41 @@ lemma open_closed[simp]: "U \<subseteq> S \<Longrightarrow> is_closed (S \<setmi
 lemma closed_open: "U \<subseteq> S \<Longrightarrow> is_closed U \<longleftrightarrow> is_open (S \<setminus> U)"
   by(simp add: is_closed_def double_diff)
 
+
+
 text \<open>p 36, def 1.2.6\<close>
 definition is_clopen :: "'a set \<Rightarrow> bool"
   where "is_clopen U \<equiv> is_open U \<and> is_closed U"
 
-lemma open_Diff [continuous_intros, intro]: "is_open U \<Longrightarrow> is_closed V \<Longrightarrow> is_open (U \<setminus> V)"
-  apply(unfold is_closed_def)
-  apply(auto)
-  apply (simp add: closed_open Diff_eq open_Int)
-
-lemma closed_Diff [continuous_intros, intro]: "is_closed U \<Longrightarrow> is_open V \<Longrightarrow> is_closed (U \<setminus> V)"
-  by (simp add: open_closed Diff_eq closed_Int)
+lemma open_Diff [continuous_intros, intro]: 
+  assumes ou:"is_open U"
+    and cv: "is_closed V"
+  shows "is_open (U \<setminus> V)"
+proof -
+  from ou have us: "U \<subseteq> S" by (rule open_imp_subset)
+  from cv have osv: "is_open (S\<setminus>V)" by (unfold is_closed_def) simp
+  from osv ou have svu: "is_open ((S\<setminus>V) \<inter> U)" by (rule open_inter)
+  from us svu show "is_open (U\<setminus>V)" by (subst Diff_eq_on[OF us]) (subst Set.Int_commute)
+qed
+  
+  
+lemma closed_Diff [continuous_intros, intro]: 
+  assumes cu:"is_closed U" 
+    and ov: "is_open V" 
+  shows "is_closed (U \<setminus> V)"
+proof -
+  from cu have ou: "U \<subseteq> S" by (unfold is_closed_def) simp
+  from cu have osu: "is_open (S\<setminus>U)" by (unfold is_closed_def) simp
+  from osu ov have suv: "is_open ((S\<setminus>U) \<union> V)" by(rule open_Un)
+    from suv have osu: "is_closed (S\<setminus>(S\<setminus>U \<union> V))" 
+    using open_imp_subset[OF ov]
+    apply(subst is_closed_def)
+    apply(subst double_diff)
+    by(auto)
+  from osu have ssuv: "is_closed ((S\<setminus>(S\<setminus>U))\<setminus>V)" by(subst diff_as_union)
+  from ssuv show "is_closed (U \<setminus> V)" 
+    by(subst double_diff[OF ou, symmetric])
+qed
 
 definition neighborhoods:: "'a \<Rightarrow> ('a set) set"
   where "neighborhoods x \<equiv> {U. is_open U \<and> x \<in> U}"
@@ -117,6 +145,13 @@ qed
 text \<open>p 27, def 1.1.7\<close>
 locale indiscrete_topology = topological_space +
   assumes open_discrete: "\<And>U. is_open U \<Longrightarrow> U = {} \<or> U = S"
+
+
+text \<open>p 39, def 1.3.1\<close>
+locale cofinite_topology = topological_space +
+  assumes finite_is_closed: "\<And>U. \<lbrakk> U\<subseteq> S ; finite U \<rbrakk> \<Longrightarrow> is_closed U"
+  assumes closed_is_finite: "\<And>U. is_closed U \<Longrightarrow> finite U"
+
 
 text \<open>T2 spaces are also known as Hausdorff spaces.\<close>
 
